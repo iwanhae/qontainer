@@ -2,9 +2,11 @@ package main
 
 import (
 	"context"
+	"crypto/rand"
 	"errors"
 	"fmt"
 	"log"
+	"net"
 	"os"
 	"os/exec"
 
@@ -93,7 +95,7 @@ func run(ctx context.Context, cfg config.Config) error {
 	cmd.Args = append(cmd.Args, "-cpu", "host")
 	cmd.Args = append(cmd.Args, "-m", cfg.Memory)
 	cmd.Args = append(cmd.Args, "-smp", cfg.CPU)
-	cmd.Args = append(cmd.Args, "-nic", fmt.Sprintf("%s,model=virtio-net-pci", cfg.Network.Type))
+	cmd.Args = append(cmd.Args, "-nic", fmt.Sprintf("%s,model=virtio-net-pci,mac=%s", cfg.Network.Type, generateMac().String()))
 	cmd.Args = append(cmd.Args, "-cdrom", ciImage)
 	cmd.Args = append(cmd.Args, "-hda", cfg.Disk)
 	cmd.Stdout = os.Stdout
@@ -157,4 +159,18 @@ func createCloudInitISO(cfg *config.Config) (path string, err error) {
 		}
 	}
 	return "./cloudinit.iso", ci.SaveTo("./cloudinit.iso")
+}
+
+func generateMac() net.HardwareAddr {
+	buf := make([]byte, 6)
+	var mac net.HardwareAddr
+
+	rand.Read(buf)
+
+	// Set the local bit
+	buf[0] |= 2
+
+	mac = append(mac, buf[0], buf[1], buf[2], buf[3], buf[4], buf[5])
+
+	return mac
 }
