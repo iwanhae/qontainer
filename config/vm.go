@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"os/exec"
 
 	"github.com/schollz/progressbar/v3"
 )
@@ -19,7 +20,7 @@ type VM struct {
 	CPU      string `env:"VM_CPU" envDefault:"1"`
 	Memory   string `env:"VM_MEMORY" envDefault:"1G"`
 	Disk     string `env:"VM_DISK" envDefault:"/data/disk.img"`
-	DiskSize string `env:"VM_DISK_SIZE" envDefault:"10G"`
+	DiskSize string `env:"VM_DISK_SIZE"`
 }
 
 func (c *VM) AutoComplete() error {
@@ -32,6 +33,19 @@ func (c *VM) AutoComplete() error {
 			log.Println("Skip downloads disk image")
 		}
 		c.Disk = DefaultDiskPath
+	}
+	if c.DiskSize != "" {
+		cmd := exec.Command("qemu-img")
+		cmd.Args = append(cmd.Args, "resize", c.Disk, c.DiskSize)
+		cmd.Stderr = os.Stderr
+		cmd.Stdout = os.Stdout
+		if err := cmd.Run(); err != nil {
+			return fmt.Errorf("fail to resize disk image: %q", err)
+		}
+
+		cmd = exec.Command("qemu-img")
+		cmd.Args = []string{"info", c.Disk}
+		cmd.Run()
 	}
 	return nil
 }
