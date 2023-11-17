@@ -12,7 +12,7 @@ type UserData struct {
 type UserCoinfig struct {
 	Name              string   `yaml:"name" json:"name"`
 	Sudo              string   `yaml:"sudo" json:"sudo"`
-	SSHAuthorizedKeys []string `yaml:"ssh_authorized_keys" json:"ssh_authorized_keys"`
+	SSHAuthorizedKeys []string `yaml:"ssh_authorized_keys,omitempty" json:"ssh_authorized_keys,omitempty"`
 	HashedPasswd      string   `yaml:"hashed_passwd" json:"hashed_passwd"`
 	LockPasswd        bool     `yaml:"lock_passwd" json:"lock_passwd"`
 }

@@ -2,34 +2,16 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"net"
 	"os"
 	"os/exec"
-	"reflect"
 
 	"github.com/caarlos0/env/v10"
 	"github.com/iwanhae/qemtainer/cloudinit"
+	"github.com/iwanhae/qemtainer/config"
 	"github.com/vishvananda/netlink"
 )
-
-type Config struct {
-	CPU    string `env:"VM_CPU" envDefault:"1"`
-	Memory string `env:"VM_MEMORY" envDefault:"1G"`
-	Disk   string `env:"VM_DISK" envDefault:"/data/disk.img"`
-
-	NetworkInterface      string   `env:"NETWORK_INTERFACE" envDefault:"eth0"`
-	NetworkAddress        string   `env:"NETWORK_ADDRESS"`
-	NetworkDefaultGateway string   `env:"NETWORK_DEFAULT_GATEWAY"`
-	NetworkNameservers    []string `env:"NETWORK_NAMESERVERS" envDefault:"8.8.8.8,8.8.4.4"`
-
-	GuestHostname string `env:"GUEST_HOSTNAME"`
-	GuestUsername string `env:"GUEST_USERNAME" envDefault:"deploy"`
-	GuestPassword string `env:"GUEST_PASSWORD" envDefault:"$6$rounds=4096$KUjo2cumnYaz0fmk$EsoVV1xP/FXIkv5mm4V26CR3qJrDZhs3Rga8OfBKNBUSsmCM7OHouHMHHz8lApGsD835DqpFvAgqJv1Hq5J.k0"`
-	GuestSudo     string `env:"GUEST_SUDO" envDefault:"ALL=(ALL) NOPASSWD:ALL"`
-
-	QemuExecutable string `env:"QEMU_EXECUTABLE" envDefault:"qemu-system-x86_64"`
-}
 
 func main() {
 	fmt.Println(` / _ \  ___ _ __ ___ | |_ __ _(_)_ __   ___ _ __ `)
@@ -38,68 +20,64 @@ func main() {
 	fmt.Println(` \__\_\\___|_| |_| |_|\__\__,_|_|_| |_|\___|_|   `)
 
 	// Load Config
-	cfg := Config{}
+	cfg := config.Config{}
 	if err := env.Parse(&cfg); err != nil {
-		fmt.Printf("%+v\n", err)
+		panic(err)
 	}
-
-	// Networks
-	{
-		// Get IP Address
-		nic, err := net.InterfaceByName(cfg.NetworkInterface)
-		if err != nil {
-			panic(
-				fmt.Errorf("fail to get network interface named %q: %w", cfg.NetworkInterface, err),
-			)
-		}
-		addr, err := nic.Addrs()
-		if err != nil {
-			panic(
-				fmt.Errorf("fail to get ip address of %q: %w", cfg.NetworkInterface, err),
-			)
-		}
-		cfg.NetworkAddress = addr[0].String()
+	if err := cfg.AutoComplete(); err != nil {
+		panic(err)
 	}
-
-	{
-		routes, err := netlink.RouteGet(net.ParseIP(cfg.NetworkNameservers[0]))
-		if err != nil {
-			panic(
-				fmt.Errorf("fail to infer default gateway to use: %w", err),
-			)
-		}
-		cfg.NetworkDefaultGateway = routes[0].Gw.String()
-	}
-
-	// Guset
-	{
-		hostname, err := os.Hostname()
-		if err != nil {
-			panic(
-				fmt.Errorf("fail fetch hostname: %w", err),
-			)
-		}
-		cfg.GuestHostname = hostname
-	}
-
-	{
-		fmt.Println("----------CONFIG----------")
-		t := reflect.TypeOf(cfg)
-		v := reflect.ValueOf(cfg)
-		for i, f := range reflect.VisibleFields(t) {
-			fmt.Printf("%s=%q\n", f.Tag.Get("env"), v.Field(i))
-		}
-	}
+	cfg.Print()
 
 	if err := run(context.Background(), cfg); err != nil {
 		panic(err)
 	}
 }
 
-func run(ctx context.Context, cfg Config) error {
-	if err := createCloudInitISO(&cfg); err != nil {
+func must[T any](v T, err error) T {
+	if err != nil {
+		panic(err)
+	}
+	return v
+}
+
+func run(ctx context.Context, cfg config.Config) error {
+	fmt.Println("----------Prepare VM----------")
+	fmt.Println("creating cloudinit")
+	ciImage, err := createCloudInitISO(&cfg)
+	if err != nil {
 		return fmt.Errorf("fail to create cloudinit file: %w", err)
 	}
+
+	if cfg.Network.Type == config.NetworkType_Bridge {
+		if _, err := netlink.LinkByName("br0"); err != nil && errors.Is(err, netlink.LinkNotFoundError{}) {
+			fmt.Println("create bridge: br0")
+			if err := netlink.LinkAdd(&netlink.Bridge{
+				LinkAttrs: netlink.LinkAttrs{Name: "br0"},
+			}); err != nil {
+				return fmt.Errorf("fail to create br0 bridge: %w", err)
+			}
+		} else if err != nil {
+			return err
+		} else {
+			fmt.Println("skip creating bridge: br0")
+		}
+
+		if err := netlink.LinkSetUp(
+			must(netlink.LinkByName("br0")),
+		); err != nil {
+			return fmt.Errorf("'ip link set br0 up' failed: %w", err)
+		}
+
+		if err := netlink.LinkSetMaster(
+			must(netlink.LinkByName("eth0")),
+			must(netlink.LinkByName("br0")),
+		); err != nil {
+			return fmt.Errorf("'ip link set dev eth0 master br0: %w", err)
+		}
+
+	}
+
 	fmt.Println("----------START VM----------")
 	defer fmt.Println("----------VM Terminated Bye Bye~ :)----------")
 	cmd := exec.Command(cfg.QemuExecutable)
@@ -108,8 +86,8 @@ func run(ctx context.Context, cfg Config) error {
 	cmd.Args = append(cmd.Args, "-cpu", "host")
 	cmd.Args = append(cmd.Args, "-m", cfg.Memory)
 	cmd.Args = append(cmd.Args, "-smp", cfg.CPU)
-	cmd.Args = append(cmd.Args, "-nic", "user,model=virtio-net-pci")
-	cmd.Args = append(cmd.Args, "-cdrom", "./cloudinit.iso")
+	cmd.Args = append(cmd.Args, "-nic", fmt.Sprintf("%s,model=virtio-net-pci", cfg.Network.Type))
+	cmd.Args = append(cmd.Args, "-cdrom", ciImage)
 	cmd.Args = append(cmd.Args, "-hda", cfg.Disk)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -120,7 +98,7 @@ func run(ctx context.Context, cfg Config) error {
 	return nil
 }
 
-func createCloudInitISO(cfg *Config) error {
+func createCloudInitISO(cfg *config.Config) (path string, err error) {
 	ci := cloudinit.CloudConfig{
 		UserData: cloudinit.UserData{
 			Hostname:         cfg.GuestHostname,
@@ -134,28 +112,31 @@ func createCloudInitISO(cfg *Config) error {
 				{
 					Name:         cfg.GuestUsername,
 					HashedPasswd: cfg.GuestPassword,
-					Sudo:         "ALL=(ALL) NOPASSWD:ALL",
+					Sudo:         cfg.GuestSudo,
 					LockPasswd:   false,
 				},
 			},
 		},
-		NetworkConfig: cloudinit.NetworkConfig{
+	}
+	if cfg.Network.Type == config.NetworkType_Bridge {
+		ci.NetworkConfig = &cloudinit.NetworkConfig{
 			Network: cloudinit.Network{
 				Version: 2,
 				Ethernets: map[string]cloudinit.Ethernet{
 					// virtio-net-pci => ens3
 					"ens3": {
-						Addresses: []string{cfg.NetworkAddress},
+						Addresses: []string{cfg.Network.Address},
 						Routes: []cloudinit.Routes{
-							{To: "default", Via: cfg.NetworkDefaultGateway},
+							{To: "default", Via: cfg.Network.DefaultGateway},
 						},
 						Nameservers: cloudinit.Nameservers{
-							Addresses: cfg.NetworkNameservers,
+							Addresses: cfg.Network.Nameservers,
+							Search:    cfg.Search,
 						},
 					},
 				},
 			},
-		},
+		}
 	}
-	return ci.SaveTo("./cloudinit.iso")
+	return "./cloudinit.iso", ci.SaveTo("./cloudinit.iso")
 }

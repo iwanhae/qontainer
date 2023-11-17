@@ -11,7 +11,7 @@ import (
 
 type CloudConfig struct {
 	UserData      UserData
-	NetworkConfig NetworkConfig
+	NetworkConfig *NetworkConfig
 }
 
 func (cloudConfig *CloudConfig) SaveTo(path string) error {
@@ -36,12 +36,14 @@ func (cloudConfig *CloudConfig) SaveTo(path string) error {
 	}
 
 	// network-config
-	b, err = yaml.Marshal(cloudConfig.NetworkConfig)
-	if err != nil {
-		return fmt.Errorf("failed to marchal cloud config to yaml: %w", err)
-	}
-	if err := writer.AddFile(bytes.NewBuffer(b), "network-config"); err != nil {
-		return fmt.Errorf("failed to add network-config to ISO: %w", err)
+	if cloudConfig.NetworkConfig != nil {
+		b, err = yaml.Marshal(cloudConfig.NetworkConfig)
+		if err != nil {
+			return fmt.Errorf("failed to marchal cloud config to yaml: %w", err)
+		}
+		if err := writer.AddFile(bytes.NewBuffer(b), "network-config"); err != nil {
+			return fmt.Errorf("failed to add network-config to ISO: %w", err)
+		}
 	}
 
 	// Write to external file

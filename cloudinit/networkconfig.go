@@ -9,12 +9,13 @@ type Routes struct {
 	Via string `json:"via"`
 }
 type Nameservers struct {
+	Search    []string `json:"search,omitempty"`
 	Addresses []string `json:"addresses"`
 }
 type Ethernet struct {
 	Addresses   []string    `json:"addresses"`
 	Routes      []Routes    `json:"routes"`
-	Nameservers Nameservers `json:"nameservers"`
+	Nameservers Nameservers `json:"nameservers,omitempty"`
 }
 
 type Network struct {
