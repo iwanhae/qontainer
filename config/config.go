@@ -13,10 +13,12 @@ type Config struct {
 	VM
 	Network
 
-	GuestHostname string `env:"GUEST_HOSTNAME"`
-	GuestUsername string `env:"GUEST_USERNAME" envDefault:"deploy"`
-	GuestPassword string `env:"GUEST_PASSWORD" envDefault:"$6$rounds=4096$KUjo2cumnYaz0fmk$EsoVV1xP/FXIkv5mm4V26CR3qJrDZhs3Rga8OfBKNBUSsmCM7OHouHMHHz8lApGsD835DqpFvAgqJv1Hq5J.k0"`
-	GuestSudo     string `env:"GUEST_SUDO" envDefault:"ALL=(ALL) NOPASSWD:ALL"`
+	GuestUseNetworkManager bool     `env:"GUEST_USE_NETWORK_MANAGER"`
+	GuestHostname          string   `env:"GUEST_HOSTNAME"`
+	GuestUsername          string   `env:"GUEST_USERNAME" envDefault:"deploy"`
+	GuestPassword          string   `env:"GUEST_PASSWORD" envDefault:"$6$rounds=4096$KUjo2cumnYaz0fmk$EsoVV1xP/FXIkv5mm4V26CR3qJrDZhs3Rga8OfBKNBUSsmCM7OHouHMHHz8lApGsD835DqpFvAgqJv1Hq5J.k0"`
+	GuestSSHAuthorizedKeys []string `env:"GUEST_SSH_AUTHORIZED_KEYS"`
+	GuestSudo              string   `env:"GUEST_SUDO" envDefault:"ALL=(ALL) NOPASSWD:ALL"`
 
 	QemuExecutable string `env:"QEMU_EXECUTABLE" envDefault:"qemu-system-x86_64"`
 }

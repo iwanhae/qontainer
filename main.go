@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"os/exec"
 
@@ -14,10 +15,12 @@ import (
 )
 
 func main() {
-	fmt.Println(` / _ \  ___ _ __ ___ | |_ __ _(_)_ __   ___ _ __ `)
-	fmt.Println(`| | | |/ _ \ '_ ' _ \| __/ _' | | '_ \ / _ \ '__|`)
-	fmt.Println(`| |_| |  __/ | | | | | || (_| | | | | |  __/ |   `)
-	fmt.Println(` \__\_\\___|_| |_| |_|\__\__,_|_|_| |_|\___|_|   `)
+	fmt.Println(`                   _        _                  `)
+	fmt.Println(`   __ _  ___  _ __ | |_ __ _(_)_ __   ___ _ __ `)
+	fmt.Println(`  / _' |/ _ \| '_ \| __/ _' | | '_ \ / _ \ '__|`)
+	fmt.Println(` | (_| | (_) | | | | || (_| | | | | |  __/ |   `)
+	fmt.Println(`  \__, |\___/|_| |_|\__\__,_|_|_| |_|\___|_|   `)
+	fmt.Println(`     |_|                                       `)
 
 	// Load Config
 	cfg := config.Config{}
@@ -69,6 +72,10 @@ func run(ctx context.Context, cfg config.Config) error {
 			return fmt.Errorf("'ip link set br0 up' failed: %w", err)
 		}
 
+		if err := netlink.AddrDel(must(netlink.LinkByName(cfg.Interface)), must(netlink.ParseAddr(cfg.Address))); err != nil {
+			log.Println("WARN: fail to delete ip address from interface, guest may can not connect to network", err)
+		}
+
 		if err := netlink.LinkSetMaster(
 			must(netlink.LinkByName("eth0")),
 			must(netlink.LinkByName("br0")),
@@ -110,15 +117,16 @@ func createCloudInitISO(cfg *config.Config) (path string, err error) {
 			},
 			Users: []cloudinit.UserCoinfig{
 				{
-					Name:         cfg.GuestUsername,
-					HashedPasswd: cfg.GuestPassword,
-					Sudo:         cfg.GuestSudo,
-					LockPasswd:   false,
+					Name:              cfg.GuestUsername,
+					HashedPasswd:      cfg.GuestPassword,
+					Sudo:              cfg.GuestSudo,
+					SSHAuthorizedKeys: cfg.GuestSSHAuthorizedKeys,
+					LockPasswd:        false,
 				},
 			},
 		},
 	}
-	if cfg.Network.Type == config.NetworkType_Bridge {
+	if cfg.Network.Type == config.NetworkType_Bridge && !cfg.GuestUseNetworkManager {
 		ci.NetworkConfig = &cloudinit.NetworkConfig{
 			Network: cloudinit.Network{
 				Version: 2,
@@ -136,6 +144,16 @@ func createCloudInitISO(cfg *config.Config) (path string, err error) {
 					},
 				},
 			},
+		}
+	} else if cfg.Network.Type == config.NetworkType_Bridge && cfg.GuestUseNetworkManager {
+		ci.MetaData = &cloudinit.MetaData{
+			LocalHostname: cfg.GuestHostname,
+			NetworkInterfaces: cloudinit.NetworkInterfaces(
+				cfg.Network.Address,
+				cfg.Network.DefaultGateway,
+				cfg.Nameservers,
+				cfg.Search,
+			),
 		}
 	}
 	return "./cloudinit.iso", ci.SaveTo("./cloudinit.iso")

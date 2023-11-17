@@ -2,24 +2,24 @@ package cloudinit
 
 // https://netplan.io
 type NetworkConfig struct {
-	Network Network `json:"network"`
+	Network Network `yaml:"network"`
 }
 type Routes struct {
-	To  string `json:"to"`
-	Via string `json:"via"`
+	To  string `yaml:"to"`
+	Via string `yaml:"via"`
 }
 type Nameservers struct {
-	Search    []string `json:"search,omitempty"`
-	Addresses []string `json:"addresses"`
+	Search    []string `yaml:"search,omitempty"`
+	Addresses []string `yaml:"addresses"`
 }
 type Ethernet struct {
-	Addresses   []string    `json:"addresses"`
-	Routes      []Routes    `json:"routes"`
-	Nameservers Nameservers `json:"nameservers,omitempty"`
+	Addresses   []string    `yaml:"addresses"`
+	Routes      []Routes    `yaml:"routes"`
+	Nameservers Nameservers `yaml:"nameservers,omitempty"`
 }
 
 type Network struct {
 	// MUST BE "2"
-	Version   int                 `json:"version"`
-	Ethernets map[string]Ethernet `json:"ethernets"`
+	Version   int                 `yaml:"version"`
+	Ethernets map[string]Ethernet `yaml:"ethernets"`
 }

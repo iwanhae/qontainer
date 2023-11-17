@@ -12,6 +12,7 @@ import (
 type CloudConfig struct {
 	UserData      UserData
 	NetworkConfig *NetworkConfig
+	MetaData      *MetaData
 }
 
 func (cloudConfig *CloudConfig) SaveTo(path string) error {
@@ -33,6 +34,17 @@ func (cloudConfig *CloudConfig) SaveTo(path string) error {
 	}
 	if err := writer.AddFile(bytes.NewBuffer(append([]byte("#cloud-config\n"), b...)), "user-data"); err != nil {
 		return fmt.Errorf("failed to add user-data to ISO: %w", err)
+	}
+
+	// meta-data
+	if cloudConfig.MetaData != nil {
+		b, err = yaml.Marshal(cloudConfig.MetaData)
+		if err != nil {
+			return fmt.Errorf("failed to marchal cloud config to yaml: %w", err)
+		}
+		if err := writer.AddFile(bytes.NewBuffer(b), "meta-data"); err != nil {
+			return fmt.Errorf("failed to add meta-data to ISO: %w", err)
+		}
 	}
 
 	// network-config
