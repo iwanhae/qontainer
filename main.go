@@ -171,7 +171,7 @@ func generateMac() net.HardwareAddr {
 	// Set the local bit
 	buf[0] |= 2
 
-	mac = append(mac, buf[0], 0x52 /* Locally Administered Unicast MAC addr only */, buf[2], buf[3], buf[4], buf[5])
+	mac = append(mac, 0x52 /* Locally Administered Unicast MAC addr only */, buf[1], buf[2], buf[3], buf[4], buf[5])
 
 	return mac
 }
