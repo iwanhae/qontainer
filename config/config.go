@@ -14,6 +14,7 @@ type Config struct {
 	Network
 
 	GuestUseNetworkManager bool     `env:"GUEST_USE_NETWORK_MANAGER"`
+	GuestShell             string   `env:"GUEST_SHELL" envDefault:"/bin/bash"`
 	GuestHostname          string   `env:"GUEST_HOSTNAME"`
 	GuestUsername          string   `env:"GUEST_USERNAME" envDefault:"deploy"`
 	GuestPassword          string   `env:"GUEST_PASSWORD" envDefault:"$6$rounds=4096$KUjo2cumnYaz0fmk$EsoVV1xP/FXIkv5mm4V26CR3qJrDZhs3Rga8OfBKNBUSsmCM7OHouHMHHz8lApGsD835DqpFvAgqJv1Hq5J.k0"`

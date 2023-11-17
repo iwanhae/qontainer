@@ -11,6 +11,7 @@ type UserData struct {
 
 type UserCoinfig struct {
 	Name              string   `yaml:"name"`
+	Shell             string   `yaml:"shell"`
 	Sudo              string   `yaml:"sudo"`
 	SSHAuthorizedKeys []string `yaml:"ssh_authorized_keys,omitempty"`
 	HashedPasswd      string   `yaml:"hashed_passwd,omitempty"`
