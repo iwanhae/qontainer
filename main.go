@@ -50,7 +50,7 @@ func run(ctx context.Context, cfg config.Config) error {
 	}
 
 	if cfg.Network.Type == config.NetworkType_Bridge {
-		if _, err := netlink.LinkByName("br0"); err != nil && errors.Is(err, netlink.LinkNotFoundError{}) {
+		if _, err := netlink.LinkByName("br0"); err != nil && errors.As(err, &netlink.LinkNotFoundError{}) {
 			fmt.Println("create bridge: br0")
 			if err := netlink.LinkAdd(&netlink.Bridge{
 				LinkAttrs: netlink.LinkAttrs{Name: "br0"},
@@ -58,7 +58,7 @@ func run(ctx context.Context, cfg config.Config) error {
 				return fmt.Errorf("fail to create br0 bridge: %w", err)
 			}
 		} else if err != nil {
-			return err
+			return fmt.Errorf("fail to create bridge: %w", err)
 		} else {
 			fmt.Println("skip creating bridge: br0")
 		}
