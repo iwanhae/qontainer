@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/iwanhae/qemtainer/config/dns"
+	"github.com/iwanhae/qontainer/config/dns"
 	"github.com/stretchr/testify/assert"
 )
 

@@ -8,8 +8,8 @@ import (
 	"os/exec"
 
 	"github.com/caarlos0/env/v10"
-	"github.com/iwanhae/qemtainer/cloudinit"
-	"github.com/iwanhae/qemtainer/config"
+	"github.com/iwanhae/qontainer/cloudinit"
+	"github.com/iwanhae/qontainer/config"
 	"github.com/vishvananda/netlink"
 )
 

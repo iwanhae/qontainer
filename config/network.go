@@ -5,7 +5,7 @@ import (
 	"log"
 	"net"
 
-	"github.com/iwanhae/qemtainer/config/dns"
+	"github.com/iwanhae/qontainer/config/dns"
 	"github.com/vishvananda/netlink"
 )
 
