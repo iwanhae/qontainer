@@ -95,6 +95,9 @@ func run(ctx context.Context, cfg config.Config) error {
 			cmd.Args = append(cmd.Args, "-i", cfg.Interface, "-d", br0.Attrs().HardwareAddr.String())
 			cmd.Args = append(cmd.Args, "-j", "dnat", "--to-destination", cfg.Network.MACAddress.String())
 			cmd.Args = append(cmd.Args, "--dnat-target", "ACCEPT")
+			if err := cmd.Run(); err != nil {
+				return err
+			}
 		}
 
 	}
