@@ -148,6 +148,11 @@ func createCloudInitISO(cfg *config.Config) (path string, err error) {
 				},
 			},
 			BootCMD: []string{
+				// I add this, because rhel based linux are not working well with a network config v2 :-(
+				// they can not add route rule, if given /32 IP address
+				"ip route add default dev eth0 scope link",
+			},
+			RunCMD: []string{
 				"cloud-init clean",
 			},
 		},
