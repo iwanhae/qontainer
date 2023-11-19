@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"strings"
 
 	"github.com/caarlos0/env/v10"
 	"github.com/iwanhae/qontainer/cloudinit"
@@ -85,7 +86,9 @@ func run(ctx context.Context, cfg config.Config) error {
 				return fmt.Errorf("'ip link set dev eth0 master br0: %w", err)
 			}
 		}
-		{
+		if strings.HasSuffix(cfg.Address, "/32") {
+			// if the address specified as /32, it is highly like the Cilium environment
+
 			// Create ebtables rule to DNAT MAC addr
 			// This is effective to CNIs such as Cilium (where dst MAC is assigned by eBPF systems)
 			br0 := must(netlink.LinkByName("br0"))
@@ -95,8 +98,10 @@ func run(ctx context.Context, cfg config.Config) error {
 			cmd.Args = append(cmd.Args, "-i", cfg.Interface, "-d", br0.Attrs().HardwareAddr.String())
 			cmd.Args = append(cmd.Args, "-j", "dnat", "--to-destination", cfg.Network.MACAddress.String())
 			cmd.Args = append(cmd.Args, "--dnat-target", "ACCEPT")
+			cmd.Stdout = os.Stdout
+			cmd.Stderr = os.Stderr
 			if err := cmd.Run(); err != nil {
-				return err
+				return fmt.Errorf("fail to create etables rules, should checks BRIDGE_EBT_DNAT is enabled: %w", err)
 			}
 		}
 
@@ -156,7 +161,7 @@ func createCloudInitISO(cfg *config.Config) (path string, err error) {
 					"ens3": {
 						Addresses: []string{cfg.Network.Address},
 						Routes: []cloudinit.Routes{
-							{To: "0.0.0.0/0", Scope: "link"},
+							{To: "0.0.0.0/0", Via: cfg.Network.DefaultGateway},
 							{To: cfg.Network.DefaultGateway, Scope: "link"},
 						},
 						Nameservers: cloudinit.Nameservers{
