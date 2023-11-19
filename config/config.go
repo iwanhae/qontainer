@@ -13,7 +13,6 @@ type Config struct {
 	VM
 	Network
 
-	GuestUseNetworkManager bool     `env:"GUEST_USE_NETWORK_MANAGER"`
 	GuestShell             string   `env:"GUEST_SHELL" envDefault:"/bin/bash"`
 	GuestHostname          string   `env:"GUEST_HOSTNAME"`
 	GuestUsername          string   `env:"GUEST_USERNAME" envDefault:"deploy"`

@@ -147,22 +147,29 @@ func createCloudInitISO(cfg *config.Config) (path string, err error) {
 					LockPasswd:        false,
 				},
 			},
-			RunCMD: [][]string{
-				{"cloud-init", "clean"}, // this will reset cloud-init to re-run network configuration on next boot
+			BootCMD: []string{
+				"cloud-init clean",
 			},
 		},
 	}
-	if cfg.Network.Type == config.NetworkType_Bridge && !cfg.GuestUseNetworkManager {
+	ci.MetaData = &cloudinit.MetaData{
+		LocalHostname: cfg.GuestHostname,
+	}
+
+	if cfg.Network.Type == config.NetworkType_Bridge {
 		ci.NetworkConfig = &cloudinit.NetworkConfig{
 			Network: cloudinit.Network{
 				Version: 2,
 				Ethernets: map[string]cloudinit.Ethernet{
 					// virtio-net-pci => ens3
-					"ens3": {
+					"eth0": {
+						Match: cloudinit.Match{
+							MACAddress: cfg.Network.MACAddress.String(),
+						},
 						Addresses: []string{cfg.Network.Address},
 						Routes: []cloudinit.Routes{
 							{To: "0.0.0.0/0", Via: cfg.Network.DefaultGateway},
-							{To: cfg.Network.DefaultGateway, Scope: "link"},
+							{To: cfg.Network.DefaultGateway, Via: "0.0.0.0", Scope: "link"},
 						},
 						Nameservers: cloudinit.Nameservers{
 							Addresses: cfg.Network.Nameservers,
@@ -172,16 +179,7 @@ func createCloudInitISO(cfg *config.Config) (path string, err error) {
 				},
 			},
 		}
-	} else if cfg.Network.Type == config.NetworkType_Bridge && cfg.GuestUseNetworkManager {
-		ci.MetaData = &cloudinit.MetaData{
-			LocalHostname: cfg.GuestHostname,
-			NetworkInterfaces: cloudinit.NetworkInterfaces(
-				cfg.Network.Address,
-				cfg.Network.DefaultGateway,
-				cfg.Nameservers,
-				cfg.Search,
-			),
-		}
 	}
+
 	return "./cloudinit.iso", ci.SaveTo("./cloudinit.iso")
 }

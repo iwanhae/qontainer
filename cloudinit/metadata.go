@@ -9,7 +9,7 @@ import (
 type MetaData struct {
 	// https://cdn.amazonlinux.com/os-images/2.0.20231101.0/README.cloud-init
 	LocalHostname     string `yaml:"local-hostname"`
-	NetworkInterfaces string `yaml:"network-interfaces"`
+	NetworkInterfaces string `yaml:"network-interfaces,omitempty"`
 }
 
 func NetworkInterfaces(addressWcidr string, gateway string, nameservers []string, search []string) string {

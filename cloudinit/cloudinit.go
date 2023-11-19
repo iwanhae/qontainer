@@ -49,7 +49,7 @@ func (cloudConfig *CloudConfig) SaveTo(path string) error {
 
 	// network-config
 	if cloudConfig.NetworkConfig != nil {
-		b, err = yaml.Marshal(cloudConfig.NetworkConfig)
+		b, err = yaml.Marshal(cloudConfig.NetworkConfig.Network)
 		if err != nil {
 			return fmt.Errorf("failed to marchal cloud config to yaml: %w", err)
 		}

@@ -13,10 +13,16 @@ type Nameservers struct {
 	Search    []string `yaml:"search,omitempty"`
 	Addresses []string `yaml:"addresses"`
 }
+
 type Ethernet struct {
+	Match       Match       `yaml:"match,omitempty"`
 	Addresses   []string    `yaml:"addresses"`
 	Routes      []Routes    `yaml:"routes"`
 	Nameservers Nameservers `yaml:"nameservers,omitempty"`
+}
+
+type Match struct {
+	MACAddress string `yaml:"macaddress"`
 }
 
 type Network struct {
