@@ -14,7 +14,7 @@ WORKDIR /data
 RUN mkdir -p /data
 
 # Install qemu
-RUN apk add qemu qemu-system-x86_64 qemu-img
+RUN apk add qemu qemu-system-x86_64 qemu-img tcpdump iptables
 RUN sh -c "echo \"allow br0\" >> /etc/qemu/bridge.conf"
 
 # qontainer
