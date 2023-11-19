@@ -7,6 +7,7 @@ type UserData struct {
 	PreserveHostname bool                `yaml:"preserve_hostname"`
 	Users            []UserCoinfig       `yaml:"users"`
 	GrowPartition    GrowPartitionConfig `yaml:"growpart"`
+	RunCMD           [][]string          `yaml:"runcmd"`
 }
 
 type UserCoinfig struct {

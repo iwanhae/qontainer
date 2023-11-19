@@ -142,6 +142,9 @@ func createCloudInitISO(cfg *config.Config) (path string, err error) {
 					LockPasswd:        false,
 				},
 			},
+			RunCMD: [][]string{
+				{"cloud-init", "clean"}, // this will reset cloud-init to re-run network configuration on next boot
+			},
 		},
 	}
 	if cfg.Network.Type == config.NetworkType_Bridge && !cfg.GuestUseNetworkManager {
