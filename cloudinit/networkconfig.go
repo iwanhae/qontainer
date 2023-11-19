@@ -5,8 +5,9 @@ type NetworkConfig struct {
 	Network Network `yaml:"network"`
 }
 type Routes struct {
-	To  string `yaml:"to"`
-	Via string `yaml:"via"`
+	To    string `yaml:"to"`
+	Via   string `yaml:"via"`
+	Scope string `yaml:"scope,omitempty"`
 }
 type Nameservers struct {
 	Search    []string `yaml:"search,omitempty"`

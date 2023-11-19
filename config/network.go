@@ -1,6 +1,7 @@
 package config
 
 import (
+	"crypto/rand"
 	"fmt"
 	"log"
 	"net"
@@ -17,6 +18,8 @@ type Network struct {
 	DefaultGateway string   `env:"NETWORK_DEFAULT_GATEWAY"`
 	Nameservers    []string `env:"NETWORK_NAMESERVERS"`
 	Search         []string `env:"NETWORK_SEARCH"`
+
+	MACAddress net.HardwareAddr `env:"NETWORK_MAC_ADDRESS" envSeparator:":"`
 }
 
 type NetworkType string
@@ -69,8 +72,25 @@ func (c *Network) AutoComplete() error {
 			c.Nameservers = resolvConf.Servers
 			c.Search = resolvConf.Search
 		}
+
+		// MAC
+		c.MACAddress = generateMac()
+
 		return nil
 	}
 
 	return fmt.Errorf("unknown network type %q", c.Type)
+}
+func generateMac() net.HardwareAddr {
+	buf := make([]byte, 6)
+	var mac net.HardwareAddr
+
+	rand.Read(buf)
+
+	// Set the local bit
+	buf[0] |= 2
+
+	mac = append(mac, 0x52 /* Locally Administered Unicast MAC addr only */, buf[1], buf[2], buf[3], buf[4], buf[5])
+
+	return mac
 }

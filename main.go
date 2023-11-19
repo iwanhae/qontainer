@@ -2,11 +2,9 @@ package main
 
 import (
 	"context"
-	"crypto/rand"
 	"errors"
 	"fmt"
 	"log"
-	"net"
 	"os"
 	"os/exec"
 
@@ -55,34 +53,48 @@ func run(ctx context.Context, cfg config.Config) error {
 	}
 
 	if cfg.Network.Type == config.NetworkType_Bridge {
-		if _, err := netlink.LinkByName("br0"); err != nil && errors.As(err, &netlink.LinkNotFoundError{}) {
-			fmt.Println("create bridge: br0")
-			if err := netlink.LinkAdd(&netlink.Bridge{
-				LinkAttrs: netlink.LinkAttrs{Name: "br0"},
-			}); err != nil {
-				return fmt.Errorf("fail to create br0 bridge: %w", err)
+		{
+			// Create br0 and connect eth0 to br0
+			if _, err := netlink.LinkByName("br0"); err != nil && errors.As(err, &netlink.LinkNotFoundError{}) {
+				fmt.Println("create bridge: br0")
+				if err := netlink.LinkAdd(&netlink.Bridge{
+					LinkAttrs: netlink.LinkAttrs{Name: "br0"},
+				}); err != nil {
+					return fmt.Errorf("fail to create br0 bridge: %w", err)
+				}
+			} else if err != nil {
+				return fmt.Errorf("fail to create bridge: %w", err)
+			} else {
+				fmt.Println("skip creating bridge: br0")
 			}
-		} else if err != nil {
-			return fmt.Errorf("fail to create bridge: %w", err)
-		} else {
-			fmt.Println("skip creating bridge: br0")
-		}
 
-		if err := netlink.LinkSetUp(
-			must(netlink.LinkByName("br0")),
-		); err != nil {
-			return fmt.Errorf("'ip link set br0 up' failed: %w", err)
-		}
+			if err := netlink.LinkSetUp(
+				must(netlink.LinkByName("br0")),
+			); err != nil {
+				return fmt.Errorf("'ip link set br0 up' failed: %w", err)
+			}
 
-		if err := netlink.AddrDel(must(netlink.LinkByName(cfg.Interface)), must(netlink.ParseAddr(cfg.Address))); err != nil {
-			log.Println("WARN: fail to delete ip address from interface, guest may can not connect to network", err)
-		}
+			if err := netlink.AddrDel(must(netlink.LinkByName(cfg.Interface)), must(netlink.ParseAddr(cfg.Address))); err != nil {
+				log.Println("WARN: fail to delete ip address from interface, guest may can not connect to network", err)
+			}
 
-		if err := netlink.LinkSetMaster(
-			must(netlink.LinkByName("eth0")),
-			must(netlink.LinkByName("br0")),
-		); err != nil {
-			return fmt.Errorf("'ip link set dev eth0 master br0: %w", err)
+			if err := netlink.LinkSetMaster(
+				must(netlink.LinkByName("eth0")),
+				must(netlink.LinkByName("br0")),
+			); err != nil {
+				return fmt.Errorf("'ip link set dev eth0 master br0: %w", err)
+			}
+		}
+		{
+			// Create ebtables rule to DNAT MAC addr
+			// This is effective to CNIs such as Cilium (where dst MAC is assigned by eBPF systems)
+			br0 := must(netlink.LinkByName("br0"))
+			cmd := exec.Command("ebtables")
+			cmd.Args = append(cmd.Args, "-t", "nat")
+			cmd.Args = append(cmd.Args, "-A", "PREROUTING")
+			cmd.Args = append(cmd.Args, "-i", cfg.Interface, "-d", br0.Attrs().HardwareAddr.String())
+			cmd.Args = append(cmd.Args, "-j", "dnat", "--to-destination", cfg.Network.MACAddress.String())
+			cmd.Args = append(cmd.Args, "--dnat-target", "ACCEPT")
 		}
 
 	}
@@ -95,7 +107,7 @@ func run(ctx context.Context, cfg config.Config) error {
 	cmd.Args = append(cmd.Args, "-cpu", "host")
 	cmd.Args = append(cmd.Args, "-m", cfg.Memory)
 	cmd.Args = append(cmd.Args, "-smp", cfg.CPU)
-	cmd.Args = append(cmd.Args, "-nic", fmt.Sprintf("%s,model=virtio-net-pci,mac=%s", cfg.Network.Type, generateMac().String()))
+	cmd.Args = append(cmd.Args, "-nic", fmt.Sprintf("%s,model=virtio-net-pci,mac=%s", cfg.Network.Type, cfg.Network.MACAddress.String()))
 	cmd.Args = append(cmd.Args, "-cdrom", ciImage)
 	cmd.Args = append(cmd.Args, "-hda", cfg.Disk)
 	cmd.Stdout = os.Stdout
@@ -139,6 +151,7 @@ func createCloudInitISO(cfg *config.Config) (path string, err error) {
 						Addresses: []string{cfg.Network.Address},
 						Routes: []cloudinit.Routes{
 							{To: "default", Via: cfg.Network.DefaultGateway},
+							{To: cfg.Network.DefaultGateway, Via: cfg.Network.DefaultGateway, Scope: "link"},
 						},
 						Nameservers: cloudinit.Nameservers{
 							Addresses: cfg.Network.Nameservers,
@@ -160,18 +173,4 @@ func createCloudInitISO(cfg *config.Config) (path string, err error) {
 		}
 	}
 	return "./cloudinit.iso", ci.SaveTo("./cloudinit.iso")
-}
-
-func generateMac() net.HardwareAddr {
-	buf := make([]byte, 6)
-	var mac net.HardwareAddr
-
-	rand.Read(buf)
-
-	// Set the local bit
-	buf[0] |= 2
-
-	mac = append(mac, 0x52 /* Locally Administered Unicast MAC addr only */, buf[1], buf[2], buf[3], buf[4], buf[5])
-
-	return mac
 }
