@@ -7,7 +7,7 @@ Run QEMU based virtual machine in a Container native way.
 # With Docker
 
 ```bash
-# With Ubuntu
+# With Ubuntu (default ID/PW is deploy/deploy)
 $ docker run --rm -it\
     --device=/dev/kvm:/dev/kvm --device=/dev/net/tun:/dev/net/tun\
     --cap-add NET_ADMIN \
@@ -16,10 +16,10 @@ $ docker run --rm -it\
     -e VM_DISK="https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64-disk-kvm.img" \
     -e VM_DISK_SIZE=25G\
     -e NETWORK_TYPE=bridge\
-    -v {Persitent Directory}:/data\
+    -v $PWD:/data\
     ghcr.io/iwanhae/qontainer:v1.0.0
 
-# With Amazon Linux 2
+# With Amazon Linux 2 (default ID/PW is deploy/deploy)
 $ docker run --rm -it\
     --device=/dev/kvm:/dev/kvm --device=/dev/net/tun:/dev/net/tun\
     --cap-add NET_ADMIN \
@@ -28,7 +28,7 @@ $ docker run --rm -it\
     -e VM_DISK="https://cdn.amazonlinux.com/os-images/2.0.20231101.0/kvm/amzn2-kvm-2.0.20231101.0-x86_64.xfs.gpt.qcow2" \
     -e VM_DISK_SIZE=25G\
     -e NETWORK_TYPE=bridge\
-    -v {Persitent Directory}:/data\
+    -v $PWD:/data\
     ghcr.io/iwanhae/qontainer:v1.0.0
 ```
 
