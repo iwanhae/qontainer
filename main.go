@@ -153,8 +153,8 @@ func createCloudInitISO(cfg *config.Config) (path string, err error) {
 					"ens3": {
 						Addresses: []string{cfg.Network.Address},
 						Routes: []cloudinit.Routes{
-							{To: "default", Via: cfg.Network.DefaultGateway},
-							{To: cfg.Network.DefaultGateway, Via: cfg.Network.DefaultGateway, Scope: "link"},
+							{To: "0.0.0.0/0", Scope: "link"},
+							{To: cfg.Network.DefaultGateway, Scope: "link"},
 						},
 						Nameservers: cloudinit.Nameservers{
 							Addresses: cfg.Network.Nameservers,

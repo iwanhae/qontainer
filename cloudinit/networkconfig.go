@@ -6,7 +6,7 @@ type NetworkConfig struct {
 }
 type Routes struct {
 	To    string `yaml:"to"`
-	Via   string `yaml:"via"`
+	Via   string `yaml:"via,omitempty"`
 	Scope string `yaml:"scope,omitempty"`
 }
 type Nameservers struct {
