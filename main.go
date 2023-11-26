@@ -153,7 +153,12 @@ func createCloudInitISO(cfg *config.Config) (path string, err error) {
 				"ip route add default dev eth0 scope link",
 			},
 			RunCMD: []string{
-				"cloud-init clean",
+				cfg.GuestUserScript,
+			},
+			Updates: cloudinit.Updates{
+				Network: cloudinit.UpdateNetwork{
+					When: []string{"boot"},
+				},
 			},
 		},
 	}

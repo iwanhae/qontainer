@@ -9,6 +9,17 @@ type UserData struct {
 	GrowPartition    GrowPartitionConfig `yaml:"growpart"`
 	RunCMD           []string            `yaml:"runcmd,omitempty"`
 	BootCMD          []string            `yaml:"bootcmd,omitempty"`
+
+	// https://github.com/canonical/cloud-init/blob/23.3.x/tests/integration_tests/test_networking.py#L25-L28
+	Updates Updates `yaml:"updates,omitempty"`
+}
+
+type Updates struct {
+	Network UpdateNetwork `yaml:"network,omitempty"`
+}
+
+type UpdateNetwork struct {
+	When []string `yaml:"when,omitempty"`
 }
 
 type UserCoinfig struct {

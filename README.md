@@ -44,9 +44,9 @@ I believe you know what to do `¯\_(ツ)_/¯`
 VM_CPU="2"
 # Memory
 VM_MEMORY="2G" 
-# default disk image path, if provide URL, will downloads it and save to `/data/disk.img`
+# Default disk image path, if URL is provided, will downloads it and save to `/data/disk.img`
 VM_DISK="/data/disk.img"
-# will disk resize to this. Can not shrink. Expand only.
+# Resize the disk to this. Can not shrink. Expand only.
 VM_DISK_SIZE="25G"
 
 # `user` > (default) Private IP Address will be provided via DHCP
@@ -79,6 +79,9 @@ GUEST_PASSWORD="$6$rounds=4096$KUjo2cumnYaz0fmk$EsoVV1xP/FXIkv5mm4V26CR3qJrDZhs3
 GUEST_SSH_AUTHORIZED_KEYS=[]
 # default user's SUDO policy
 GUEST_SUDO="ALL=(ALL) NOPASSWD:ALL"
+# base64 encoded user script that will be run at first boot.
+# e.g., "ZWNobyBoZWxsbyB3b3JsZA=="
+GUEST_USERSCRIPT_BASE64="" 
 
 # Changing this not recommended
 QEMU_EXECUTABLE="/usr/bin/qemu-system-x86_64"

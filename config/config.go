@@ -1,6 +1,7 @@
 package config
 
 import (
+	"encoding/base64"
 	"fmt"
 	"os"
 	"os/exec"
@@ -19,6 +20,7 @@ type Config struct {
 	GuestPassword          string   `env:"GUEST_PASSWORD" envDefault:"$6$rounds=4096$KUjo2cumnYaz0fmk$EsoVV1xP/FXIkv5mm4V26CR3qJrDZhs3Rga8OfBKNBUSsmCM7OHouHMHHz8lApGsD835DqpFvAgqJv1Hq5J.k0"`
 	GuestSSHAuthorizedKeys []string `env:"GUEST_SSH_AUTHORIZED_KEYS"`
 	GuestSudo              string   `env:"GUEST_SUDO" envDefault:"ALL=(ALL) NOPASSWD:ALL"`
+	GuestUserScript        string   `env:"GUEST_USERSCRIPT_BASE64"`
 
 	QemuExecutable string `env:"QEMU_EXECUTABLE" envDefault:"qemu-system-x86_64"`
 }
@@ -35,12 +37,19 @@ func (c *Config) AutoComplete() error {
 	} else {
 		c.GuestHostname = hostname
 	}
-
 	if path, err := exec.LookPath(QemuExecutable); err != nil {
 		return fmt.Errorf("fail to get path of %q: %w", QemuExecutable, err)
 	} else {
 		c.QemuExecutable = path
 	}
+	if c.GuestUserScript != "" {
+		if b, err := base64.StdEncoding.DecodeString(c.GuestUserScript); err != nil {
+			return fmt.Errorf("fail to decode base64 encoded user script %q: %w", c.GuestUserScript, err)
+		} else {
+			c.GuestUserScript = string(b)
+		}
+	}
+
 	return nil
 }
 
